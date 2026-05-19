@@ -22,20 +22,25 @@ def login(account_no:int, password:str)->bool:
         reader_obj= csv.reader(file)
         user_accounts = list(reader_obj)
         for user in user_accounts:
-            if user:
-                if user[0] == str(account_no) and user[1] == str(password):
-                    return True
+            if user[0] == account_no and user[1] == password:
+                return True
         return False
-    
+    # if account_no in accounts: #check account no exists in accounts table
+    #     if accounts[account_no] == password:
+    #         return True
+    #     else:
+    #         return False
+    # else:
+    #     return False
+
 #^ register
 def register(username:str, email:str, password:str, balance:int)->str:
     with open("users.csv","r+",newline="") as file:
         reader_obj = csv.reader(file)
         users_data = list(reader_obj)
         for user in users_data:
-            if user:
-                if user[2] == email:
-                    return "User Email Already Exits"
+            if user[2] == email:
+                return "User Email already Exits"
         account_no = len(users_data)+1
         # add user data into users table and accounts table
         writer_obj = csv.writer(file)
@@ -47,59 +52,42 @@ def register(username:str, email:str, password:str, balance:int)->str:
         return f"Your account number is{account_no}"
 
 def get_balance(account_no:int)->int:
-    with open("users.csv","r") as users:
-        users_reader = csv.reader(users)
-        users_data = list(users_reader)
-        for user in users_data:
-            if user:
-                if user[0] == str(account_no):
-                    return f"Current Balance is {user[3]}"
-        return "Account data not found"
-
+    if account_no in users:
+        return users[account_no]['balance']
+    else:
+        return "Account not exists in users table"
 
 
 # WITHDRAW 
 def withdraw(account_no:int, withdraw_amount:int)->str:
+    if account_no in users:
 
-    with open("users.csv","r+") as users:
-        users_reader = csv.reader(users)
-        users_data = list(users_reader)
-        for user in users_data:
-            if user:
-                if user[0] == str(account_no):
-                    curr_amount = int(user[3])
-                    if curr_amount >= withdraw_amount:
-                        updated_amount = curr_amount - withdraw_amount
-                        user[3] = str(updated_amount)
-                        #update in user file data 
-                        users.seek(0) #taking cursor to 0 position
-                        users_writer = csv.writer(users)
-                        users_writer.writerows(users_data)
+        curr_amount = users[account_no]['balance']
 
-                        # send email
-                        subject = "Withdraw Alert"
-                        username = user[1] #uer
-                        reciever_email = user[2] #email
-                        body = f"""
-                            Dear {username},
+        if curr_amount >= withdraw_amount:
 
-                            {withdraw_amount} withdraw successful.
-                            Current balance: {updated_amount}.
+            users[account_no]['balance'] -= withdraw_amount
+            username = users[account_no]['username']
+            receiver = users[account_no]['email']
+            subject = "Withdraw Alert"
+            body = f"""
+            Dear {username},
 
-                            If this transaction not done by you contact your branch.
+            {withdraw_amount} withdraw successful.
+            Current balance: ₹{users[account_no]['balance']}
 
-                            Thank You, 
-                            Small Scale Bank
-                            """
+            
+            Thank You,
+            Small Scale Bank
+            """
 
-                        # EMAIL SENT ONLY AFTER SUCCESS
-                        print(SingleEmailSender(to_email=reciever_email, subject = subject, body = body))
-                        return f"Current Balance is {updated_amount}"
-                        
-                    else: 
-                        return "Insufficient Balance"
-                else:
-                    return "Account not exists in database"
+            # EMAIL SENT ONLY AFTER SUCCESS
+            SingleEmailSender(receiver, subject, body)
+            return f"{withdraw_amount} withdraw successful and current balance is {users[account_no]['balance']}"
+        else:
+            return "Insufficient Balance"
+    else:
+        return "Account not exists in database"
 
 
 # DEPOSIT 
